@@ -220,7 +220,8 @@ func receiveM(w http.ResponseWriter, r *http.Request) {
 
 		tNow := []byte(fmt.Sprint(time.Now().Format("2006-01-02 15:04:05"), "|"))
 		msg = append(tNow, msg...)
-		// TODO: Change "Sender" for "Receiver" according to who the connection is.
+		// TODO: Change "Sender" for "Receiver" according to who the
+		// connection represents.
 		msg = append(msg, "|Sender"...)
 
 		// Write message back to browser

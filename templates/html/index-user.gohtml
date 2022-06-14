@@ -1,31 +1,3 @@
 {{ define "user" }}
-    <!-- USER NAME: {{ .UserName }}<br>
-    FIRST NAME: {{ .FirstName }}<br>
-    LAST NAME: {{ .LastName }}<br>
-    <input id="input" type="text" />
-    <button onclick="send()">Send</button>
-    <pre id="output"></pre>
-
-    <a class="btn btn-success" href="/logout">Log Out Here</a> -->
-
     {{ template "chat" }}
-
-    <!-- <script>
-        var input = document.getElementById("input");
-        var output = document.getElementById("output");
-        var socket = new WebSocket("ws://localhost:8080/receive/");
-
-        socket.onopen = function () {
-            output.innerHTML += "Status: Connected\n";
-        };
-
-        socket.onmessage = function (e) {
-            output.innerHTML += "Server: " + e.data + "\n";
-        };
-
-        function send() {
-            socket.send(input.value);
-            input.value = "";
-        }
-    </script> -->
 {{ end }}
