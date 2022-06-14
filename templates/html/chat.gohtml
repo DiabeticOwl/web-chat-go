@@ -1,0 +1,130 @@
+{{ define "chat" }}
+    <div class="card chat-app">
+        <div id="plist" class="people-list">
+            <ul class="list-unstyled chat-list mt-2 mb-0">
+                <li class="clearfix active">
+                    <img src="/assets/images/unk-prof.jpeg">
+                    <div class="about">
+                        <div class="name">Vincent Porter</div>
+                        <div class="status"> <i class="fa fa-circle online"></i> last activity: </div>                                            
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="chat">
+            <div class="chat-header clearfix">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <a href="javascript:void(0);" data-toggle="modal" data-target="#view_info">
+                            <img src="/assets/images/unk-prof.jpeg">
+                        </a>
+                        <div class="chat-about">
+                            <h6 class="m-b-0">Aiden Chavez</h6>
+                            <small>Last activity: </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="chat-history">
+                <!-- Here messages are viceversa, "my-message" class belongs to the sender messages an "other-message" class belongs to the receiver's. -->
+                <ul class="m-b-0">
+
+                    <li class="clearfix">
+                        <div class="message-data text-right">
+                            <span class="message-data-time">10:12 AM, Today</span>
+                        </div>
+                        <div class="message my-message float-right">Are we meeting today?</div>                                    
+                    </li> 
+
+                    <!-- <li class="clearfix">
+                        <div class="message-data text-left">
+                            <span class="message-data-time">10:10 AM, Today</span>
+                            <img src="/assets/images/unk-prof.jpeg">
+                        </div>
+                        <div class="message my-message float-left"> Hi Aiden, how are you? How is the project coming along? </div>
+                    </li>
+                    <li class="clearfix">
+                        <div class="message-data text-right">
+                            <span class="message-data-time">10:12 AM, Today</span>
+                        </div>
+                        <div class="message other-message float-right">Are we meeting today?</div>                                    
+                    </li>                               
+                    <li class="clearfix">
+                        <div class="message-data text-right">
+                            <span class="message-data-time">10:15 AM, Today</span>
+                        </div>
+                        <div class="message other-message float-right">Project has been already finished and I have results to show you.</div>
+                    </li> -->
+                </ul>
+            </div>
+            <div class="chat-message clearfix">
+                <form method="GET" id="inputForm">
+                    <div class="input-group mb-0">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" onclick="send()"><i class="fa fa-send"></i></span>
+                        </div>
+                        <input id="inputMessage" type="text" class="form-control" placeholder="Enter text here...">                                    
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var divOfMessagesElement = document.getElementsByClassName("chat-history")[0]
+        var input = document.getElementById("inputMessage");
+        var socket = new WebSocket("ws://localhost:8080/receive/");
+
+        socket.onmessage = function (e) {
+            var listOfMessagesElement = divOfMessagesElement.children[0];
+            
+            var messages = e.data.split('|');
+
+            var newMessage = document.createElement("li");
+            var nMsgChildBody = document.createElement("div");
+            var nMsgChildTime = document.createElement("div");
+            var nMsgChildTimeChild = document.createElement("span");
+            
+            if (messages[2] === "Sender"){
+                newMessage.classList.add("clearfix");
+                nMsgChildBody.classList.add("message", "my-message", "float-right");
+                nMsgChildTime.classList.add("message-data", "text-right");
+                nMsgChildTimeChild.classList.add("message-data-time");
+            } else {
+                newMessage.classList.add("clearfix");
+                nMsgChildBody.classList.add("message", "other-message", "float-left");
+                nMsgChildTime.classList.add("message-data", "text-left");
+                nMsgChildTimeChild.classList.add("message-data-time");
+            }
+
+            nMsgChildTimeChild.innerHTML += messages[0]
+            nMsgChildBody.innerHTML += messages[1]
+
+            nMsgChildTime.appendChild(nMsgChildTimeChild)
+            
+            newMessage.appendChild(nMsgChildTime);
+            newMessage.appendChild(nMsgChildBody);
+
+            listOfMessagesElement.appendChild(newMessage);
+        };
+
+        function send() {
+            socket.send(input.value);
+            input.value = "";
+        }
+
+        document.getElementById("inputForm").onsubmit = function () {
+            if (!socket) {
+                return false;
+            }
+
+            if (!input.value) {
+                return false;
+            }
+            
+            send();
+
+            return false;
+        }
+    </script>
+{{ end }}
