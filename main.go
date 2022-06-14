@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"html/template"
 	"net/http"
 	"time"
 
+	"web-chat-go/hub"
 	"web-chat-go/user"
 
 	"github.com/google/uuid"
@@ -34,18 +34,22 @@ var dbUsers = make(map[string]user.User)
 // Session ID, UserName
 var dbSessions = make(map[string]session)
 
+var h = hub.NewHub()
+
 func init() {
-	tpl = template.Must(template.ParseGlob("./templates/html/*.gohtml"))
+	tpl = template.Must(template.ParseGlob("./assets/html/*.gohtml"))
 }
 
 func main() {
+	go h.Run()
+
 	http.HandleFunc("/", index)
 	http.HandleFunc("/signup/", signUp)
 	http.HandleFunc("/login/", login)
 	http.HandleFunc("/logout/", logout)
-	http.HandleFunc("/receive/", receiveM)
+	http.HandleFunc("/ws/", serveWs)
 
-	http.Handle("/assets/", http.StripPrefix("/assets", http.FileServer(http.Dir("./templates"))))
+	http.Handle("/assets/", http.StripPrefix("/assets", http.FileServer(http.Dir("./assets"))))
 
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
@@ -53,7 +57,24 @@ func main() {
 	}
 }
 
+func serveWs(w http.ResponseWriter, r *http.Request) {
+	u := getUser(w, r)
+
+	client := &hub.Client{
+		User: &u,
+		Hub:  h,
+		Send: make(chan []byte),
+	}
+
+	hub.ServeClientWs(h, client, w, r)
+}
+
 func index(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed.", http.StatusMethodNotAllowed)
+		return
+	}
+
 	tpl.ExecuteTemplate(w, "index.gohtml", getUser(w, r))
 }
 
@@ -88,12 +109,6 @@ func signUp(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		c := setCookie(w)
-		dbSessions[c.Value] = session{
-			un:           un,
-			lastActivity: time.Now(),
-		}
-
 		saltPass := uuid.NewString()
 		// Encrypting password with bcrypt.
 		sb, err := bcrypt.GenerateFromPassword(
@@ -126,6 +141,12 @@ func signUp(w http.ResponseWriter, r *http.Request) {
 			panic(err)
 		}
 
+		c := setCookie(w)
+		dbSessions[c.Value] = session{
+			un:           un,
+			lastActivity: time.Now(),
+		}
+
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 
 		return
@@ -156,10 +177,9 @@ func login(w http.ResponseWriter, r *http.Request) {
 		u, err := user.SearchUser(un)
 		if err != nil {
 			http.Error(w,
-				"Internal Server Error",
-				http.StatusInternalServerError)
-
-			panic(err)
+				"Incorrect Username or Password.",
+				http.StatusForbidden)
+			return
 		}
 
 		err = bcrypt.CompareHashAndPassword(
@@ -202,31 +222,4 @@ func logout(w http.ResponseWriter, r *http.Request) {
 	delete(dbSessions, c.Value)
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
-}
-
-func receiveM(w http.ResponseWriter, r *http.Request) {
-	conn, _ := upgrader.Upgrade(w, r, nil) // error ignored for sake of simplicity
-	u := getUser(w, r)
-
-	for {
-		// Read message from browser
-		msgType, msg, err := conn.ReadMessage()
-		if err != nil {
-			return
-		}
-
-		// Print the message to the console
-		fmt.Printf("%s sent: %s\n", u.UserName, string(msg))
-
-		tNow := []byte(fmt.Sprint(time.Now().Format("2006-01-02 15:04:05"), "|"))
-		msg = append(tNow, msg...)
-		// TODO: Change "Sender" for "Receiver" according to who the
-		// connection represents.
-		msg = append(msg, "|Sender"...)
-
-		// Write message back to browser
-		if err = conn.WriteMessage(msgType, msg); err != nil {
-			return
-		}
-	}
 }
