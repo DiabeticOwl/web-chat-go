@@ -1,3 +1,5 @@
+// Web Chat in Go is a simple chat built with the websocket protocol (rfc6455)
+// on the back end and a free bootstrap template on the front end.
 package main
 
 import (
@@ -34,6 +36,7 @@ var dbUsers = make(map[string]user.User)
 // Session ID, UserName
 var dbSessions = make(map[string]session)
 
+// The single instance of "hub" is assigned.
 var h = hub.NewHub()
 
 func init() {
@@ -57,6 +60,8 @@ func main() {
 	}
 }
 
+// serveWs will instantiate a new "hub.Client" pointer and pass it as an
+// argument in "hub.ServeClientWs".
 func serveWs(w http.ResponseWriter, r *http.Request) {
 	u := getUser(w, r)
 
@@ -78,6 +83,10 @@ func index(w http.ResponseWriter, r *http.Request) {
 	tpl.ExecuteTemplate(w, "index.gohtml", getUser(w, r))
 }
 
+// signUp will execute the given template and save the data that the user
+// posted through the form displayed, encrypting the password with an added
+// salt and the "bcrypt" package. signUp will redirect to "/" if
+// "alreadyLoggedIn" returns true.
 func signUp(w http.ResponseWriter, r *http.Request) {
 	if alreadyLoggedIn(w, r) {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -155,6 +164,10 @@ func signUp(w http.ResponseWriter, r *http.Request) {
 	tpl.ExecuteTemplate(w, "signup.gohtml", nil)
 }
 
+// login will execute the given template and receive the information passed
+// from the form displayed and check if it is in our database of users.
+// If it is, the function will create a session and assign it to that user.
+// If it is not, then the user will be redirected to "/".
 func login(w http.ResponseWriter, r *http.Request) {
 	if alreadyLoggedIn(w, r) {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -206,6 +219,9 @@ func login(w http.ResponseWriter, r *http.Request) {
 	tpl.ExecuteTemplate(w, "login.gohtml", nil)
 }
 
+// logout will check that the user is logged in and remove their session and
+// record from "dbSessions". If the user isn't logged in or the cookie isn't
+// found it will redirect to "/".
 func logout(w http.ResponseWriter, r *http.Request) {
 	if !alreadyLoggedIn(w, r) {
 		http.Redirect(w, r, "/", http.StatusSeeOther)

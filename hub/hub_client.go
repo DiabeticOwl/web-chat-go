@@ -21,11 +21,17 @@ type Client struct {
 	Send chan []byte
 }
 
+// clientClose will unregister the given Client and close it's connection
+// to the web application.
 func (c *Client) clientClose() {
 	c.Hub.unregister <- c
 	c.Conn.Close()
 }
 
+// readMessages defers the closure of the Client and enables an
+// implementation of a Reader logic that will read each message sent from the
+// web application through the WebSocket. The read message will be broadcasted
+// to the entire Hub's collection of clients.
 func (c *Client) readMessages() {
 	defer c.clientClose()
 
@@ -33,7 +39,10 @@ func (c *Client) readMessages() {
 		// Read message from browser
 		_, msg, err := c.Conn.ReadMessage()
 		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+			if websocket.IsUnexpectedCloseError(
+				err, websocket.CloseGoingAway,
+				websocket.CloseAbnormalClosure,
+			) {
 				fmt.Println("The websocket closed unexpectedly.")
 			}
 
@@ -44,12 +53,15 @@ func (c *Client) readMessages() {
 		msg = append(tNow, msg...)
 		// TODO: Change "Sender" for "Receiver" according to who the
 		// connection represents.
-		msg = append(msg, "|Sender"...)
+		// msg = append(msg, "|Sender"...)
 
 		c.Hub.broadcast <- msg
 	}
 }
 
+// writeMessages defers the closure of the Client's connection to the web
+// application and enables an implementation of a Writer logic that will
+// extract all messages that the "Send" channel in the Client instance has.
 func (c *Client) writeMessages() {
 	defer c.Conn.Close()
 
@@ -76,6 +88,10 @@ func (c *Client) writeMessages() {
 	}
 }
 
+// ServeClientWs will upgrade the passed connection to a WebSocket protocol
+// and register the passed Client to the hub instance. Later the client's
+// "writeMessages" and "readMessages" methods will be launched to different
+// goroutines.
 func ServeClientWs(
 	hub *Hub, client *Client,
 	w http.ResponseWriter, r *http.Request,
