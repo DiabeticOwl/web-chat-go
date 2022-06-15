@@ -44,9 +44,9 @@ func (c *Client) readMessages() {
 				websocket.CloseAbnormalClosure,
 			) {
 				fmt.Println("The websocket closed unexpectedly.")
+				break
 			}
-
-			break
+			panic(err)
 		}
 
 		tNow := []byte(fmt.Sprint(time.Now().Format("2006-01-02 15:04:05"), "|"))
