@@ -1,6 +1,6 @@
 var divOfMessagesElement = document.getElementsByClassName("chat-history")[0]
 var input = document.getElementById("inputMessage");
-var socket = new WebSocket("ws://localhost:8080/ws/");
+var socket = new WebSocket("ws://" + document.location.host + "/ws/");
 
 socket.onmessage = function (e) {
     var listOfMessagesElement = divOfMessagesElement.children[0];
