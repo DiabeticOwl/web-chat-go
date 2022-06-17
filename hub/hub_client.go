@@ -45,6 +45,11 @@ func (c *Client) readMessages() {
 			) {
 				fmt.Println("The websocket closed unexpectedly.")
 				break
+			} else if websocket.IsCloseError(
+				err, websocket.CloseGoingAway,
+			) {
+				fmt.Printf("User %v has logged out.", c.User.UserName)
+				break
 			}
 			panic(err)
 		}
@@ -105,6 +110,8 @@ func ServeClientWs(
 	client.Conn = conn
 
 	client.Hub.register <- client
+
+	fmt.Printf("User %v has logged in.\n", client.User.UserName)
 
 	go client.writeMessages()
 	go client.readMessages()
