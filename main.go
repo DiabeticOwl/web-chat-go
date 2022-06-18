@@ -115,7 +115,7 @@ func handle(conn net.Conn) {
 		)
 		if err != nil {
 			// TODO: Make a loop for retrying.
-			fmt.Fprintf(conn, "\nIncorrect password. Try again.")
+			fmt.Fprintf(conn, "\nIncorrect password. Try again.\n")
 			return
 		}
 
