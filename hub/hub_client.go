@@ -2,6 +2,7 @@ package hub
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 	"web-chat-go/user"
@@ -19,6 +20,11 @@ type Client struct {
 	Hub  *Hub
 	Conn *websocket.Conn
 	Send chan []byte
+}
+
+type ClientTCP struct {
+	User *user.User
+	Conn net.Conn
 }
 
 // clientClose will unregister the given Client and close it's connection
@@ -48,7 +54,7 @@ func (c *Client) readMessages() {
 			} else if websocket.IsCloseError(
 				err, websocket.CloseGoingAway,
 			) {
-				fmt.Printf("User %v has logged out.", c.User.UserName)
+				fmt.Printf("User %v has logged out.\n", c.User.UserName)
 				break
 			}
 			panic(err)
@@ -56,11 +62,10 @@ func (c *Client) readMessages() {
 
 		tNow := []byte(fmt.Sprint(time.Now().Format("2006-01-02 15:04:05"), "|"))
 		msg = append(tNow, msg...)
-		// TODO: Change "Sender" for "Receiver" according to who the
-		// connection represents.
-		// msg = append(msg, "|Sender"...)
 
-		c.Hub.broadcast <- msg
+		msg = append(msg, []byte(fmt.Sprintf("|%v", c.User.UserName))...)
+
+		c.Hub.Broadcast <- msg
 	}
 }
 
