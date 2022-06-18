@@ -1,3 +1,6 @@
 *.mod
 *.sum
 *.sh
+
+# All files without extensions (for instance: binaries).
+[^\.]*
