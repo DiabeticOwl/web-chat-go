@@ -3,7 +3,10 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
 	"html/template"
+	"net"
 	"net/http"
 	"time"
 
@@ -39,6 +42,8 @@ var dbSessions = make(map[string]session)
 // The single instance of "hub" is assigned.
 var h = hub.NewHub()
 
+var tcpConn = make(chan hub.Client)
+
 func init() {
 	tpl = template.Must(template.ParseGlob("./assets/html/*.gohtml"))
 }
@@ -52,12 +57,94 @@ func main() {
 	http.HandleFunc("/logout/", logout)
 	http.HandleFunc("/ws/", serveWs)
 
-	http.Handle("/assets/", http.StripPrefix("/assets", http.FileServer(http.Dir("./assets"))))
+	http.Handle("/assets/", http.StripPrefix("/assets",
+		http.FileServer(http.Dir("./assets"))))
+
+	go func() {
+		// A listener is opened in the port "8080" with the "tcp" network.
+		li, err := net.Listen("tcp", ":8082")
+		if err != nil {
+			panic(err)
+		}
+		defer li.Close()
+
+		// Infinitely accepts for new connections and sends a goroutine for
+		// each one that handles it.
+		for {
+			conn, err := li.Accept()
+			if err != nil {
+				panic(err)
+			}
+
+			go handle(conn)
+		}
+	}()
 
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		panic(err)
 	}
+}
+
+// handle takes the accepted connection and asks for an identification
+// from the user. After a scanner brought by the "bufio" package will
+// read each line inputted by the user and print them to the server and
+// any other connection instantiated hub.
+func handle(conn net.Conn) {
+	defer conn.Close()
+
+	fmt.Fprintf(conn, "Please identify yourself: ")
+	scanner := bufio.NewScanner(conn)
+	client := hub.ClientTCP{
+		Conn: conn,
+	}
+
+	scanner.Scan()
+
+	// Identity of the user.
+	un := scanner.Text()
+	u, err := user.SearchUser(un)
+	if err == nil {
+		fmt.Fprintf(conn, "Please enter your password: ")
+
+		scanner.Scan()
+
+		err = bcrypt.CompareHashAndPassword(
+			u.Password,
+			[]byte(u.SaltPass+scanner.Text()),
+		)
+		if err != nil {
+			// TODO: Make a loop for retrying.
+			fmt.Fprintf(conn, "\nIncorrect password. Try again.")
+			return
+		}
+
+		client.User = &u
+	} else {
+		// else needed as the termination of this function will terminate
+		// the WebSocket connection.
+		fmt.Fprintf(conn, "\nWelcome in %v.\n", un)
+
+		u.UserName = un
+		client.User = &u
+	}
+
+	fmt.Printf("User %v has logged in.\n", client.User.UserName)
+
+	client.Conn = conn
+	h.RegisterTCP <- &client
+
+	for scanner.Scan() {
+		msg := scanner.Bytes()
+		tNow := []byte(fmt.Sprint(time.Now().Format("2006-01-02 15:04:05"), "|"))
+		msg = append(tNow, msg...)
+
+		msg = append(msg, []byte(fmt.Sprintf("|%v", client.User.UserName))...)
+
+		h.Broadcast <- msg
+	}
+
+	fmt.Printf("User %v has logged out.\n", client.User.UserName)
 }
 
 // serveWs will instantiate a new "hub.Client" pointer and pass it as an
@@ -189,6 +276,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 		u, err := user.SearchUser(un)
 		if err != nil {
+			fmt.Println(err.Error())
 			http.Error(w,
 				"Incorrect Username or Password.",
 				http.StatusForbidden)
