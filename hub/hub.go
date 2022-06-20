@@ -59,7 +59,7 @@ func (h *Hub) Run() {
 			if _, ok := h.clients[client]; ok {
 				h.closeClient(client)
 			}
-			// Each Client's unregistration.
+		// Each Client's unregistration.
 		case client := <-h.UnregisterTCP:
 			if _, ok := h.clientsTCP[client]; ok {
 				delete(h.clientsTCP, client)
@@ -83,12 +83,14 @@ func (h *Hub) Run() {
 
 			for client := range h.clientsTCP {
 				msgDet := strings.Split(string(msg), "|")
-				msg := fmt.Sprintf(
-					"%v - User %v says: %v",
-					msgDet[0],
-					msgDet[2],
-					msgDet[1],
-				)
+
+				tm, ms, un := msgDet[0], msgDet[1], msgDet[2]
+
+				if client.User.UserName == un {
+					continue
+				}
+
+				msg := fmt.Sprintf("%v - User %v says: %v", tm, un, ms)
 
 				fmt.Fprintln(client.Conn, msg)
 			}
