@@ -5,7 +5,11 @@ package hub
 import (
 	"fmt"
 	"strings"
+	"sync"
 )
+
+var wg = &sync.WaitGroup{}
+var mut = &sync.RWMutex{}
 
 type Hub struct {
 	// Map of clients that will be used to broadcast messages to all of them.
@@ -45,31 +49,54 @@ func (h *Hub) closeClient(client *Client) {
 	close(client.Send)
 }
 
+func (h *Hub) waitAndRun(f func()) {
+	wg.Add(1)
+
+	mut.Lock()
+
+	f()
+
+	mut.Unlock()
+
+	wg.Done()
+}
+
 func (h *Hub) Run() {
 	for {
 		select {
 		// Each Client's registration.
 		case client := <-h.register:
-			h.clients[client] = true
-			// Each ClientTCP's registration.
+			h.waitAndRun(func() {
+				h.clients[client] = true
+			})
+		// Each ClientTCP's registration.
 		case client := <-h.RegisterTCP:
-			h.clientsTCP[client] = true
+			h.waitAndRun(func() {
+				h.clientsTCP[client] = true
+			})
 		// Each Client's unregistration.
 		case client := <-h.unregister:
-			if _, ok := h.clients[client]; ok {
-				h.closeClient(client)
-			}
+			h.waitAndRun(func() {
+				if _, ok := h.clients[client]; ok {
+					h.closeClient(client)
+				}
+			})
 		// Each Client's unregistration.
 		case client := <-h.UnregisterTCP:
-			if _, ok := h.clientsTCP[client]; ok {
-				delete(h.clientsTCP, client)
-			}
+			h.waitAndRun(func() {
+				if _, ok := h.clientsTCP[client]; ok {
+					delete(h.clientsTCP, client)
+				}
+			})
 		// Each Client's message to be broadcasted.
 		// Each message is passed to two goroutines that will range hub's
 		// maps of clients.
 		case msg := <-h.Broadcast:
+			wg.Add(2)
+
 			// If the message comes from the
 			go func() {
+				mut.RLock()
 				for client := range h.clients {
 					select {
 					// Sends the message extracted from the broadcast channel
@@ -79,6 +106,9 @@ func (h *Hub) Run() {
 						h.closeClient(client)
 					}
 				}
+				mut.RUnlock()
+
+				wg.Done()
 			}()
 
 			for client := range h.clientsTCP {
@@ -94,6 +124,8 @@ func (h *Hub) Run() {
 
 				fmt.Fprintln(client.Conn, msg)
 			}
+
+			wg.Done()
 		}
 	}
 }
