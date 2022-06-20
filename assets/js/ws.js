@@ -17,18 +17,6 @@ socket.onmessage = function (e) {
     nMsgChildTime.classList.add("message-data", "text-right");
     nMsgChildTimeChild.classList.add("message-data-time");
 
-    // if (messages[2] === "Sender"){
-    //     newMessage.classList.add("clearfix");
-    //     nMsgChildBody.classList.add("message", "my-message", "float-right");
-    //     nMsgChildTime.classList.add("message-data", "text-right");
-    //     nMsgChildTimeChild.classList.add("message-data-time");
-    // } else {
-    //     newMessage.classList.add("clearfix");
-    //     nMsgChildBody.classList.add("message", "other-message", "float-left");
-    //     nMsgChildTime.classList.add("message-data", "text-left");
-    //     nMsgChildTimeChild.classList.add("message-data-time");
-    // }
-
     nMsgChildTimeChild.innerHTML += messages[0]
     nMsgChildBody.innerHTML += messages[1]
 
@@ -38,6 +26,8 @@ socket.onmessage = function (e) {
     newMessage.appendChild(nMsgChildBody);
 
     listOfMessagesElement.appendChild(newMessage);
+
+    listOfMessagesElement.scrollIntoView();
 };
 
 function send() {

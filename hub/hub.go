@@ -1,4 +1,4 @@
-// Hug is a package that describes the Hub and client functionality and
+// Hub is a package that describes the Hubs and clients functionalities and
 // structure for the "web-chat-go" usage.
 package hub
 
@@ -16,11 +16,11 @@ type Hub struct {
 	// A channel of []byte type that will be used to broadcast messages to
 	// the rest of Clients.
 	Broadcast chan []byte
-	// A channel of *Client type that will be used for the registration of
+	// A channel of *Client type will be used for the registration of
 	// a Client.
 	register    chan *Client
 	RegisterTCP chan *ClientTCP
-	// A channel of *Client type that will be used for the unregistration of
+	// A channel of *Client type will be used for the unregistration of
 	// a client.
 	unregister    chan *Client
 	UnregisterTCP chan *ClientTCP

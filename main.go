@@ -61,8 +61,8 @@ func main() {
 		http.FileServer(http.Dir("./assets"))))
 
 	go func() {
-		// A listener is opened in the port "8080" with the "tcp" network.
-		li, err := net.Listen("tcp", ":8082")
+		// A listener is opened in the port "6893" with the "tcp" network.
+		li, err := net.Listen("tcp", ":6893")
 		if err != nil {
 			panic(err)
 		}
@@ -80,7 +80,7 @@ func main() {
 		}
 	}()
 
-	err := http.ListenAndServe(":8080", nil)
+	err := http.ListenAndServe(":80", nil)
 	if err != nil {
 		panic(err)
 	}
@@ -115,7 +115,7 @@ func handle(conn net.Conn) {
 		)
 		if err != nil {
 			// TODO: Make a loop for retrying.
-			fmt.Fprintf(conn, "\nIncorrect password. Try again.\n")
+			fmt.Fprintf(conn, "\nIncorrect password. Try again.")
 			return
 		}
 

@@ -6,7 +6,7 @@ The logic used is an implementation of the [websocket package](https://github.co
 
 User data is stored on a local [PostgreSQL](https://www.postgresql.org/) database and, alongside the entire app, will be served in the cloud in the future.
 
-Web Chat in Go also enables another port (8082) in which users can connect with the command "telnet" and join the group chat by identifying themselves as an already logged in user or as a guest user.
+Web Chat in Go also enables another port (6893) in which users can connect with the command "telnet" and join the group chat by identifying themselves as an already logged in user or as a guest user.
 
 ## Client
 
