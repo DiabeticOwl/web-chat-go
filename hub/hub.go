@@ -65,12 +65,15 @@ func (h *Hub) Run() {
 				delete(h.clientsTCP, client)
 			}
 		// Each Client's message to be broadcasted.
+		// Each message is passed to two goroutines that will range hub's
+		// maps of clients.
 		case msg := <-h.Broadcast:
+			// If the message comes from the
 			go func() {
 				for client := range h.clients {
 					select {
-					// Sends the message extracted from the broadcast channel to
-					// the Client's Send channel.
+					// Sends the message extracted from the broadcast channel
+					// to the Client's Send channel.
 					case client.Send <- msg:
 					default:
 						h.closeClient(client)
@@ -80,7 +83,13 @@ func (h *Hub) Run() {
 
 			for client := range h.clientsTCP {
 				msgDet := strings.Split(string(msg), "|")
-				msg := fmt.Sprintf("%v - User %v says: %v", msgDet[0], msgDet[2], msgDet[1])
+				msg := fmt.Sprintf(
+					"%v - User %v says: %v",
+					msgDet[0],
+					msgDet[2],
+					msgDet[1],
+				)
+
 				fmt.Fprintln(client.Conn, msg)
 			}
 		}

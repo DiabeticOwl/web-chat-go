@@ -87,9 +87,9 @@ func main() {
 }
 
 // handle takes the accepted connection and asks for an identification
-// from the user. After a scanner brought by the "bufio" package will
-// read each line inputted by the user and print them to the server and
-// any other connection instantiated hub.
+// from the user. After a scanner brought by the "bufio" package reads
+// each line inputted by the user and prints them to the server and
+// any other connection instantiated hub, hundle will close the connection.
 func handle(conn net.Conn) {
 	defer conn.Close()
 
@@ -105,6 +105,7 @@ func handle(conn net.Conn) {
 	un := scanner.Text()
 	u, err := user.SearchUser(un)
 	if err == nil {
+		// TODO: Mask password entry.
 		fmt.Fprintf(conn, "Please enter your password: ")
 
 		scanner.Scan()
@@ -131,9 +132,12 @@ func handle(conn net.Conn) {
 
 	fmt.Printf("User %v has logged in.\n", client.User.UserName)
 
+	// Assigns the client's connection and registers it.
 	client.Conn = conn
 	h.RegisterTCP <- &client
 
+	// Sets up every posterior message inputted by the user and broadcats
+	// it through the hub.
 	for scanner.Scan() {
 		msg := scanner.Bytes()
 		tNow := []byte(fmt.Sprint(time.Now().Format("2006-01-02 15:04:05"), "|"))
