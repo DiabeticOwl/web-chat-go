@@ -49,8 +49,11 @@ func (h *Hub) closeClient(client *Client) {
 	close(client.Send)
 }
 
-func (h *Hub) waitAndRun(f func()) {
-	wg.Add(1)
+// waitAndRun will wrap a function with an n amount of waitgroups and lock the
+// resources used in that function with a RWMutex before realising them and
+// telling the WaitGroup instance that all groups have completed their tasks.
+func (h *Hub) waitAndRun(f func(), n int) {
+	wg.Add(n)
 
 	mut.Lock()
 
@@ -68,26 +71,26 @@ func (h *Hub) Run() {
 		case client := <-h.register:
 			h.waitAndRun(func() {
 				h.clients[client] = true
-			})
+			}, 1)
 		// Each ClientTCP's registration.
 		case client := <-h.RegisterTCP:
 			h.waitAndRun(func() {
 				h.clientsTCP[client] = true
-			})
+			}, 1)
 		// Each Client's unregistration.
 		case client := <-h.unregister:
 			h.waitAndRun(func() {
 				if _, ok := h.clients[client]; ok {
 					h.closeClient(client)
 				}
-			})
+			}, 1)
 		// Each Client's unregistration.
 		case client := <-h.UnregisterTCP:
 			h.waitAndRun(func() {
 				if _, ok := h.clientsTCP[client]; ok {
 					delete(h.clientsTCP, client)
 				}
-			})
+			}, 1)
 		// Each Client's message to be broadcasted.
 		// Each message is passed to two goroutines that will range hub's
 		// maps of clients.
