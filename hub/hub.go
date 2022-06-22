@@ -97,7 +97,6 @@ func (h *Hub) Run() {
 		case msg := <-h.Broadcast:
 			wg.Add(2)
 
-			// If the message comes from the
 			go func() {
 				mut.RLock()
 				for client := range h.clients {
