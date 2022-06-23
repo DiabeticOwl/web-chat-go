@@ -39,19 +39,14 @@ type ClientMessage struct {
 	User    *user.User
 }
 
-// clientClose will unregister the given Client and close it's connection
-// to the web application.
-func (c *Client) clientClose() {
-	c.Hub.unregisterWS <- c
-	c.Conn.Close()
-}
-
 // readMessages defers the closure of the Client and enables an
 // implementation of a Reader logic that will read each message sent from the
 // web application through the WebSocket. The read message will be broadcasted
 // to the entire Hub's collection of clients.
 func (c *Client) readMessages() {
-	defer c.clientClose()
+	// This will unregister the given Client and close it's connection
+	// to the web application.
+	defer c.Hub.closeClient(c)
 
 	for {
 		// Read message from browser

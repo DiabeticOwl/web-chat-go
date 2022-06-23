@@ -43,6 +43,8 @@ func NewHub() *Hub {
 // Client's Send channel.
 func (h *Hub) closeClient(client *Client) {
 	delete(h.clientsWS, client)
+
+	client.Conn.Close()
 	close(client.Send)
 }
 
@@ -105,6 +107,8 @@ func (h *Hub) Run() {
 					fmt.Fprintln(client.Conn, msg)
 				}
 			}()
+
+			wg.Wait()
 		}
 	}
 }
