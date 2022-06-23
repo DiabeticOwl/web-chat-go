@@ -66,6 +66,8 @@ func main() {
 
 	err := http.ListenAndServe(":80", nil)
 	if err != nil {
+		// http.ListenAndServe will panic if the port is in use or the if
+		// application doesn't have the rights of using it.
 		panic(err)
 	}
 }
