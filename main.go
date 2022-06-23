@@ -148,13 +148,13 @@ func handleConnection(conn net.Conn) {
 	// Sets up every posterior message inputted by the user and broadcasts
 	// it through the hub.
 	for scanner.Scan() {
-		msg := scanner.Bytes()
-		tNow := []byte(fmt.Sprint(time.Now().Format("2006-01-02 15:04:05"), "|"))
-		msg = append(tNow, msg...)
+		message := hub.ClientMessage{
+			Time:    time.Now().Format("2006-01-02 15:04:05"),
+			MsgBody: scanner.Bytes(),
+			User:    client.User,
+		}
 
-		msg = append(msg, []byte(fmt.Sprintf("|%v", client.User.UserName))...)
-
-		clientsHub.Broadcast <- msg
+		clientsHub.Broadcast <- message
 	}
 
 	fmt.Printf("User %v has logged out.\n", client.User.UserName)
@@ -168,7 +168,7 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 	client := &hub.Client{
 		User: &u,
 		Hub:  clientsHub,
-		Send: make(chan []byte),
+		Send: make(chan hub.ClientMessage),
 	}
 
 	hub.ServeClientWs(clientsHub, client, w, r)

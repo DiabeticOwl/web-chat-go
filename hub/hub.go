@@ -4,7 +4,6 @@ package hub
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 )
 
@@ -17,7 +16,7 @@ type Hub struct {
 	clientsTCP map[*ClientTCP]bool
 	// A channel of []byte type that will be used to broadcast messages to
 	// the rest of Clients.
-	Broadcast chan []byte
+	Broadcast chan ClientMessage
 	// A channel of *Client type will be used for the registration of
 	// a Client.
 	registerWS  chan *Client
@@ -32,7 +31,7 @@ func NewHub() *Hub {
 	return &Hub{
 		clientsWS:     make(map[*Client]bool),
 		clientsTCP:    make(map[*ClientTCP]bool),
-		Broadcast:     make(chan []byte),
+		Broadcast:     make(chan ClientMessage),
 		registerWS:    make(chan *Client),
 		RegisterTCP:   make(chan *ClientTCP),
 		unregisterWS:  make(chan *Client),
@@ -69,7 +68,7 @@ func (h *Hub) Run() {
 		// Each Client's message to be broadcasted.
 		// Each message is passed to two goroutines that will range hub's
 		// maps of clients.
-		case msg := <-h.Broadcast:
+		case message := <-h.Broadcast:
 			var wg = &sync.WaitGroup{}
 
 			wg.Add(2)
@@ -81,7 +80,7 @@ func (h *Hub) Run() {
 					select {
 					// Sends the message extracted from the broadcast channel
 					// to the Client's Send channel.
-					case client.Send <- msg:
+					case client.Send <- message:
 					default:
 						h.closeClient(client)
 					}
@@ -92,15 +91,16 @@ func (h *Hub) Run() {
 				defer wg.Done()
 
 				for client := range h.clientsTCP {
-					msgDet := strings.Split(string(msg), "|")
-
-					tm, ms, un := msgDet[0], msgDet[1], msgDet[2]
-
-					if client.User.UserName == un {
+					if client.User.UserName == message.User.UserName {
 						continue
 					}
 
-					msg := fmt.Sprintf("%v - User %v says: %v", tm, un, ms)
+					msg := fmt.Sprintf(
+						"%s %s > %s",
+						message.Time,
+						message.User.UserName,
+						message.MsgBody,
+					)
 
 					fmt.Fprintln(client.Conn, msg)
 				}

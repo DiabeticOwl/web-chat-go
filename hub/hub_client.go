@@ -22,13 +22,21 @@ type Client struct {
 	User *user.User
 	Hub  *Hub
 	Conn *websocket.Conn
-	Send chan []byte
+	Send chan ClientMessage
 }
 
 // ClientTCP type is a struct that will describe a TCP client.
 type ClientTCP struct {
 	User *user.User
 	Conn net.Conn
+}
+
+// ClientMessage type is a struct that will describe a message to be
+// sent to the entire collection of Clients in the application's hub.
+type ClientMessage struct {
+	Time    string
+	MsgBody []byte
+	User    *user.User
 }
 
 // clientClose will unregister the given Client and close it's connection
@@ -50,26 +58,25 @@ func (c *Client) readMessages() {
 		_, msg, err := c.Conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(
-				err, websocket.CloseGoingAway,
+				err,
+				websocket.CloseGoingAway,
 				websocket.CloseAbnormalClosure,
+				websocket.CloseNormalClosure,
 			) {
-				fmt.Println("The websocket closed unexpectedly.")
-				break
-			} else if websocket.IsCloseError(
-				err, websocket.CloseGoingAway,
-			) {
-				fmt.Printf("User %v has logged out.\n", c.User.UserName)
-				break
+				panic(err)
 			}
-			panic(err)
+
+			fmt.Printf("User %v has logged out.\n", c.User.UserName)
+			break
 		}
 
-		tNow := []byte(fmt.Sprint(time.Now().Format("2006-01-02 15:04:05"), "|"))
-		msg = append(tNow, msg...)
+		message := ClientMessage{
+			Time:    time.Now().Format("2006-01-02 15:04:05"),
+			MsgBody: msg,
+			User:    c.User,
+		}
 
-		msg = append(msg, []byte(fmt.Sprintf("|%v", c.User.UserName))...)
-
-		c.Hub.Broadcast <- msg
+		c.Hub.Broadcast <- message
 	}
 }
 
@@ -81,7 +88,7 @@ func (c *Client) writeMessages() {
 
 	for {
 		select {
-		case msg, ok := <-c.Send:
+		case message, ok := <-c.Send:
 			if !ok {
 				return
 			}
@@ -92,7 +99,10 @@ func (c *Client) writeMessages() {
 				// return
 			}
 
-			w.Write(msg)
+			// Formatting the message with the following pattern:
+			// Time of the message | Message's body.
+			msg := fmt.Sprintf("%s|%s", message.Time, message.MsgBody)
+			w.Write([]byte(msg))
 
 			if err := w.Close(); err != nil {
 				panic(err)
