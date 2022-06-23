@@ -5,7 +5,7 @@ var socket = new WebSocket("ws://" + document.location.host + "/ws/");
 socket.onmessage = function (e) {
     var listOfMessagesElement = divOfMessagesElement.children[0];
     
-    var messages = e.data.split('|');
+    var message = e.data.split('|');
 
     var newMessage = document.createElement("li");
     var nMsgChildBody = document.createElement("div");
@@ -17,8 +17,8 @@ socket.onmessage = function (e) {
     nMsgChildTime.classList.add("message-data", "text-right");
     nMsgChildTimeChild.classList.add("message-data-time");
 
-    nMsgChildTimeChild.innerHTML += messages[0]
-    nMsgChildBody.innerHTML += messages[1]
+    nMsgChildTimeChild.innerHTML += message[0]
+    nMsgChildBody.innerHTML += message[1]
 
     nMsgChildTime.appendChild(nMsgChildTimeChild)
     
