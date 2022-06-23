@@ -62,29 +62,35 @@ func main() {
 	http.Handle("/assets/", http.StripPrefix("/assets",
 		http.FileServer(http.Dir("./assets"))))
 
-	go func() {
-		// A listener is opened in the port "6893" with the "tcp" network.
-		li, err := net.Listen("tcp", ":6893")
-		if err != nil {
-			panic(err)
-		}
-		defer li.Close()
-
-		// Infinitely accepts for new connections and sends a goroutine for
-		// each one that handles it.
-		for {
-			conn, err := li.Accept()
-			if err != nil {
-				panic(err)
-			}
-
-			go handleConnection(conn)
-		}
-	}()
+	go tcpServer(":6893")
 
 	err := http.ListenAndServe(":80", nil)
 	if err != nil {
 		panic(err)
+	}
+}
+
+// tcpServer will open a listener in the given address and launch accepted
+// connections as goroutines for them to be taken care of.
+func tcpServer(address string) {
+	// A listener is opened in the port "6893" with the "tcp" network.
+	li, err := net.Listen("tcp", address)
+	if err != nil {
+		// net.Listen will panic if the port is in use or the if
+		// application doesn't have the rights of using it.
+		panic(err)
+	}
+	defer li.Close()
+
+	// Infinitely accepts for new connections and sends a goroutine for
+	// each one that handles it.
+	for {
+		conn, err := li.Accept()
+		if err != nil {
+			panic(err)
+		}
+
+		go handleConnection(conn)
 	}
 }
 
