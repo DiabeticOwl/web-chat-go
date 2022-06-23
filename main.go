@@ -19,6 +19,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// session type will describe the time of the last activity of a given user.
 type session struct {
 	un           string
 	lastActivity time.Time
@@ -26,21 +27,22 @@ type session struct {
 
 var tpl *template.Template
 var upgrader = websocket.Upgrader{
-	// BufferSize determines how many bytes does the CPU handles each load,
-	// the bigger the size the less the CPU is going to work as less loads
-	// would need to be processed.
+	// BufferSize determines how many bytes does the CPU handles each message
+	// load sent to the websocket, the bigger the size the less the CPU is
+	// going to work as less loads would need to be processed.
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 }
 
-// UserName, User
+// dbUsers is a map that will store the connected users information.
 var dbUsers = make(map[string]user.User)
 
-// Session ID, UserName
+// dbSessions is a map that will store the information of the session
+// in which each user is related to. The key will be a cookie.
 var dbSessions = make(map[string]session)
 
 // The single instance of "hub" is assigned.
-var h = hub.NewHub()
+var clientsHub = hub.NewHub()
 
 var tcpConn = make(chan hub.Client)
 
@@ -49,7 +51,7 @@ func init() {
 }
 
 func main() {
-	go h.Run()
+	go clientsHub.Run()
 
 	http.HandleFunc("/", index)
 	http.HandleFunc("/signup/", signUp)
@@ -76,7 +78,7 @@ func main() {
 				panic(err)
 			}
 
-			go handle(conn)
+			go handleConnection(conn)
 		}
 	}()
 
@@ -86,11 +88,12 @@ func main() {
 	}
 }
 
-// handle takes the accepted connection and asks for an identification
-// from the user. After a scanner brought by the "bufio" package reads
-// each line inputted by the user and prints them to the server and
-// any other connection instantiated hub, hundle will close the connection.
-func handle(conn net.Conn) {
+// handleConnection takes the accepted connection and asks for an
+// identification from the user. After a scanner brought by the
+// "bufio" package reads each line inputted by the user and prints
+// them to the server and any other connection instantiated hub,
+// handleConnection will close the connection.
+func handleConnection(conn net.Conn) {
 	defer conn.Close()
 
 	fmt.Fprintf(conn, "Please identify yourself: ")
@@ -134,9 +137,9 @@ func handle(conn net.Conn) {
 
 	// Assigns the client's connection and registers it.
 	client.Conn = conn
-	h.RegisterTCP <- &client
+	clientsHub.RegisterTCP <- &client
 
-	// Sets up every posterior message inputted by the user and broadcats
+	// Sets up every posterior message inputted by the user and broadcasts
 	// it through the hub.
 	for scanner.Scan() {
 		msg := scanner.Bytes()
@@ -145,7 +148,7 @@ func handle(conn net.Conn) {
 
 		msg = append(msg, []byte(fmt.Sprintf("|%v", client.User.UserName))...)
 
-		h.Broadcast <- msg
+		clientsHub.Broadcast <- msg
 	}
 
 	fmt.Printf("User %v has logged out.\n", client.User.UserName)
@@ -158,11 +161,11 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 
 	client := &hub.Client{
 		User: &u,
-		Hub:  h,
+		Hub:  clientsHub,
 		Send: make(chan []byte),
 	}
 
-	hub.ServeClientWs(h, client, w, r)
+	hub.ServeClientWs(clientsHub, client, w, r)
 }
 
 func index(w http.ResponseWriter, r *http.Request) {

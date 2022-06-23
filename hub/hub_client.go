@@ -15,6 +15,9 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
+// Client type is a struct that will describe a websocket client.
+// A client is a registered user in the application's hub that
+// is able to send messages to others of its own type.
 type Client struct {
 	User *user.User
 	Hub  *Hub
@@ -22,6 +25,7 @@ type Client struct {
 	Send chan []byte
 }
 
+// ClientTCP type is a struct that will describe a TCP client.
 type ClientTCP struct {
 	User *user.User
 	Conn net.Conn
@@ -30,7 +34,7 @@ type ClientTCP struct {
 // clientClose will unregister the given Client and close it's connection
 // to the web application.
 func (c *Client) clientClose() {
-	c.Hub.unregister <- c
+	c.Hub.unregisterWS <- c
 	c.Conn.Close()
 }
 
@@ -114,7 +118,7 @@ func ServeClientWs(
 
 	client.Conn = conn
 
-	client.Hub.register <- client
+	client.Hub.registerWS <- client
 
 	fmt.Printf("User %v has logged in.\n", client.User.UserName)
 

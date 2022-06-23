@@ -12,32 +12,33 @@ var wg = &sync.WaitGroup{}
 var mut = &sync.RWMutex{}
 
 type Hub struct {
-	// Map of clients that will be used to broadcast messages to all of them.
+	// Map of WebSocket clients that will be used to broadcast messages to the
+	// rest of its own type.
 	// This collection is used in order to harness the Go's built-in function
 	// called "delete".
-	clients    map[*Client]bool
+	clientsWS  map[*Client]bool
 	clientsTCP map[*ClientTCP]bool
 	// A channel of []byte type that will be used to broadcast messages to
 	// the rest of Clients.
 	Broadcast chan []byte
 	// A channel of *Client type will be used for the registration of
 	// a Client.
-	register    chan *Client
+	registerWS  chan *Client
 	RegisterTCP chan *ClientTCP
 	// A channel of *Client type will be used for the unregistration of
 	// a client.
-	unregister    chan *Client
+	unregisterWS  chan *Client
 	UnregisterTCP chan *ClientTCP
 }
 
 func NewHub() *Hub {
 	return &Hub{
-		clients:       make(map[*Client]bool),
+		clientsWS:     make(map[*Client]bool),
 		clientsTCP:    make(map[*ClientTCP]bool),
 		Broadcast:     make(chan []byte),
-		register:      make(chan *Client),
+		registerWS:    make(chan *Client),
 		RegisterTCP:   make(chan *ClientTCP),
-		unregister:    make(chan *Client),
+		unregisterWS:  make(chan *Client),
 		UnregisterTCP: make(chan *ClientTCP),
 	}
 }
@@ -45,7 +46,7 @@ func NewHub() *Hub {
 // closeClient cleans the hub's collection of Clients and closes the given
 // Client's Send channel.
 func (h *Hub) closeClient(client *Client) {
-	delete(h.clients, client)
+	delete(h.clientsWS, client)
 	close(client.Send)
 }
 
@@ -68,9 +69,9 @@ func (h *Hub) Run() {
 	for {
 		select {
 		// Each Client's registration.
-		case client := <-h.register:
+		case client := <-h.registerWS:
 			h.waitAndRun(func() {
-				h.clients[client] = true
+				h.clientsWS[client] = true
 			}, 1)
 		// Each ClientTCP's registration.
 		case client := <-h.RegisterTCP:
@@ -78,9 +79,9 @@ func (h *Hub) Run() {
 				h.clientsTCP[client] = true
 			}, 1)
 		// Each Client's unregistration.
-		case client := <-h.unregister:
+		case client := <-h.unregisterWS:
 			h.waitAndRun(func() {
-				if _, ok := h.clients[client]; ok {
+				if _, ok := h.clientsWS[client]; ok {
 					h.closeClient(client)
 				}
 			}, 1)
@@ -99,7 +100,7 @@ func (h *Hub) Run() {
 
 			go func() {
 				mut.RLock()
-				for client := range h.clients {
+				for client := range h.clientsWS {
 					select {
 					// Sends the message extracted from the broadcast channel
 					// to the Client's Send channel.
