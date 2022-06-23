@@ -64,7 +64,9 @@ func main() {
 
 	go tcpServer(":6893")
 
-	err := http.ListenAndServe(":80", nil)
+	// Port 8080 is used for debugging purposes.
+	// In deployment port 80 is recommended.
+	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		// http.ListenAndServe will panic if the port is in use or the if
 		// application doesn't have the rights of using it.
