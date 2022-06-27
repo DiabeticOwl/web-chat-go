@@ -14,6 +14,12 @@ func setCookie(w http.ResponseWriter) *http.Cookie {
 		Value:    uuid.NewString(),
 		Path:     "/",
 		HttpOnly: true,
+		MaxAge:   int(time.Minute) * 2,
+		// For SameSite Cookie Warning.
+		// More info at:
+		// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite
+		// https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-cookie-same-site-00
+		SameSite: http.SameSiteLaxMode,
 	}
 
 	http.SetCookie(w, c)

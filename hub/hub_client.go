@@ -52,6 +52,7 @@ func (c *Client) readMessages() {
 		// Read message from browser
 		_, msg, err := c.Conn.ReadMessage()
 		if err != nil {
+			// This clause means: if err is not any of the following, panic.
 			if websocket.IsUnexpectedCloseError(
 				err,
 				websocket.CloseGoingAway,
