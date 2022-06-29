@@ -59,7 +59,7 @@ func signUp(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		isSigned := user.IsSigned(user.SearchUser(un))
+		isSigned := user.IsSigned(user.SearchUser(dbConn, un))
 
 		if isSigned {
 			http.Error(w,
@@ -92,7 +92,7 @@ func signUp(w http.ResponseWriter, r *http.Request) {
 			FirstName: fn,
 			LastName:  ln,
 		}
-		err = user.AddUser(u)
+		err = user.AddUser(dbConn, u)
 		if err != nil {
 			http.Error(w,
 				"Internal Server Error",
@@ -138,7 +138,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		u, err := user.SearchUser(un)
+		u, err := user.SearchUser(dbConn, un)
 		if err != nil {
 			fmt.Println(err.Error())
 			http.Error(w,

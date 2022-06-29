@@ -4,6 +4,7 @@ package hub
 
 import (
 	"bufio"
+	"database/sql"
 	"fmt"
 	"net"
 	"sync"
@@ -124,7 +125,7 @@ func (h *Hub) RunChat() {
 // "bufio" package reads each line inputted by the user and prints
 // them to the server and any other connection instantiated hub,
 // handleTCPConnection will close the connection.
-func (h *Hub) handleTCPConnection(conn net.Conn) {
+func (h *Hub) handleTCPConnection(conn net.Conn, dbConn *sql.DB) {
 	defer conn.Close()
 
 	fmt.Fprintf(conn, "Please identify yourself: ")
@@ -137,7 +138,7 @@ func (h *Hub) handleTCPConnection(conn net.Conn) {
 
 	// Identity of the user.
 	un := scanner.Text()
-	u, err := user.SearchUser(un)
+	u, err := user.SearchUser(dbConn, un)
 	if err == nil {
 		// TODO: Mask password entry.
 		fmt.Fprintf(conn, "Please enter your password: ")
@@ -188,7 +189,7 @@ func (h *Hub) handleTCPConnection(conn net.Conn) {
 
 // RunTCPServer will open a listener in the given address and launch accepted
 // connections as goroutines for them to be taken care of.
-func (h *Hub) RunTCPServer(address string) {
+func (h *Hub) RunTCPServer(address string, dbConn *sql.DB) {
 	// A listener is opened in the port "6893" with the "tcp" network.
 	li, err := net.Listen("tcp", address)
 	if err != nil {
@@ -206,6 +207,6 @@ func (h *Hub) RunTCPServer(address string) {
 			panic(err)
 		}
 
-		go h.handleTCPConnection(conn)
+		go h.handleTCPConnection(conn, dbConn)
 	}
 }

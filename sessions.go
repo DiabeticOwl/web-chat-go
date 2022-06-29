@@ -38,7 +38,7 @@ func getUser(w http.ResponseWriter, r *http.Request) user.User {
 	}
 
 	if sess, ok := dbSessions[c.Value]; ok {
-		u, err = user.SearchUser(sess.un)
+		u, err = user.SearchUser(dbConn, sess.un)
 		if err != nil {
 			panic(err)
 		}

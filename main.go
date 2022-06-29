@@ -2,15 +2,14 @@
 // on the back end and a free bootstrap template on the front end.
 package main
 
-import (
-	"net/http"
-
-	_ "github.com/lib/pq"
-)
+import "net/http"
 
 func main() {
+	// Closes the connection to the database when the application ends.
+	defer dbConn.Close()
+
 	go clientsHub.RunChat()
-	go clientsHub.RunTCPServer(":6893")
+	go clientsHub.RunTCPServer(":6893", dbConn)
 
 	http.HandleFunc("/", index)
 	http.HandleFunc("/signup/", signUp)
@@ -23,7 +22,11 @@ func main() {
 
 	// Port 8080 is used for debugging purposes.
 	// In deployment port 80 is recommended.
-	err := http.ListenAndServe(":8080", nil)
+	port := ":8080"
+	if !debug {
+		port = ":8080"
+	}
+	err := http.ListenAndServe(port, nil)
 	if err != nil {
 		// http.ListenAndServe will panic if the port is in use or the if
 		// application doesn't have the rights of using it.

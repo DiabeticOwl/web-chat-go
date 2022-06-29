@@ -1,10 +1,8 @@
 package user
 
 import (
+	"database/sql"
 	"fmt"
-	"web-chat-go/config"
-
-	_ "github.com/lib/pq"
 )
 
 type User struct {
@@ -16,11 +14,8 @@ type User struct {
 	LastName  string
 }
 
-func AllUsers() (map[string]User, error) {
-	db := config.Connect()
-	defer db.Close()
-
-	rows, err := db.Query(`
+func AllUsers(dbConn *sql.DB) (map[string]User, error) {
+	rows, err := dbConn.Query(`
 		SELECT
 			UserName, SaltPass, Password, FirstName, LastName
 		FROM users;
@@ -55,11 +50,8 @@ func IsSigned(u User, err error) bool {
 	return u.UserName != "" && err == nil
 }
 
-func SearchUser(un string) (User, error) {
+func SearchUser(dbConn *sql.DB, un string) (User, error) {
 	var u User
-
-	db := config.Connect()
-	defer db.Close()
 
 	q := fmt.Sprintf(`
 		SELECT
@@ -68,7 +60,7 @@ func SearchUser(un string) (User, error) {
 		WHERE
 			username = $1;
 	`)
-	row := db.QueryRow(q, un)
+	row := dbConn.QueryRow(q, un)
 
 	err := row.Scan(
 		&u.ID, &u.UserName, &u.SaltPass, &u.Password, &u.FirstName, &u.LastName,
@@ -76,10 +68,7 @@ func SearchUser(un string) (User, error) {
 	return u, err
 }
 
-func AddUser(u User) error {
-	db := config.Connect()
-	defer db.Close()
-
+func AddUser(dbConn *sql.DB, u User) error {
 	q := fmt.Sprintf(`
 		INSERT INTO users (
 			UserName, SaltPass, Password, FirstName, LastName
@@ -88,7 +77,7 @@ func AddUser(u User) error {
 			$1, $2, $3, $4, $5
 		);
 	`)
-	_, err := db.Exec(
+	_, err := dbConn.Exec(
 		q, u.UserName, u.SaltPass, u.Password, u.FirstName, u.LastName,
 	)
 

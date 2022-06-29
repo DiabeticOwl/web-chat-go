@@ -16,6 +16,10 @@ type session struct {
 	lastActivity time.Time
 }
 
+// debug describes whether the application is run on a debugging or a
+// production environment.
+var debug = true
+
 var tpl = template.Must(template.ParseGlob("./assets/html/*.gohtml"))
 var upgrader = websocket.Upgrader{
 	// BufferSize determines how many bytes does the CPU handles each message
@@ -36,3 +40,6 @@ var dbSessions = make(map[string]session)
 var clientsHub = hub.NewHub()
 
 var tcpConn = make(chan hub.ClientWS)
+
+// The connection to the database is opened and assigned to dbConn.
+var dbConn = connect()
