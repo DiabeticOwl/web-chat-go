@@ -18,7 +18,7 @@ var upgrader = websocket.Upgrader{
 // Client type is a struct that will describe a websocket client.
 // A client is a registered user in the application's hub that
 // is able to send messages to others of its own type.
-type Client struct {
+type ClientWS struct {
 	User *user.User
 	Hub  *Hub
 	Conn *websocket.Conn
@@ -43,16 +43,17 @@ type ClientMessage struct {
 // implementation of a Reader logic that will read each message sent from the
 // web application through the WebSocket. The read message will be broadcasted
 // to the entire Hub's collection of clients.
-func (c *Client) readMessages() {
-	// This will unregister the given Client and close it's connection
-	// to the web application.
-	defer c.Hub.closeClient(c)
+func (c *ClientWS) readMessages() {
+	// Client's closure.
+	defer func() {
+		c.Hub.UnregisterWS <- c
+	}()
 
 	for {
 		// Read message from browser
 		_, msg, err := c.Conn.ReadMessage()
 		if err != nil {
-			// This clause means: if err is not any of the following, panic.
+			// If err is not any of the following, panic.
 			if websocket.IsUnexpectedCloseError(
 				err,
 				websocket.CloseGoingAway,
@@ -79,7 +80,7 @@ func (c *Client) readMessages() {
 // writeMessages defers the closure of the Client's connection to the web
 // application and enables an implementation of a Writer logic that will
 // extract all messages that the "Send" channel in the Client instance has.
-func (c *Client) writeMessages() {
+func (c *ClientWS) writeMessages() {
 	defer c.Conn.Close()
 
 	for {
@@ -113,7 +114,7 @@ func (c *Client) writeMessages() {
 // "writeMessages" and "readMessages" methods will be launched to different
 // goroutines.
 func ServeClientWs(
-	hub *Hub, client *Client,
+	hub *Hub, client *ClientWS,
 	w http.ResponseWriter, r *http.Request,
 ) {
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -124,7 +125,7 @@ func ServeClientWs(
 
 	client.Conn = conn
 
-	client.Hub.registerWS <- client
+	client.Hub.RegisterWS <- client
 
 	fmt.Printf("User %v has logged in.\n", client.User.UserName)
 

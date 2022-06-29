@@ -22,11 +22,7 @@ func AllUsers() (map[string]User, error) {
 
 	rows, err := db.Query(`
 		SELECT
-			UserName,
-			SaltPass,
-			Password,
-			FirstName,
-			LastName
+			UserName, SaltPass, Password, FirstName, LastName
 		FROM users;
 	`)
 	if err != nil {
@@ -39,11 +35,7 @@ func AllUsers() (map[string]User, error) {
 		u := User{}
 
 		err := rows.Scan(
-			&u.UserName,
-			&u.SaltPass,
-			&u.Password,
-			&u.FirstName,
-			&u.LastName,
+			&u.UserName, &u.SaltPass, &u.Password, &u.FirstName, &u.LastName,
 		)
 		if err != nil {
 			panic(err)
@@ -71,12 +63,7 @@ func SearchUser(un string) (User, error) {
 
 	q := fmt.Sprintf(`
 		SELECT
-			ID,
-			UserName,
-			SaltPass,
-			Password,
-			FirstName,
-			LastName
+			ID, UserName, SaltPass, Password, FirstName, LastName
 		FROM users
 		WHERE
 			username = $1;
@@ -84,12 +71,7 @@ func SearchUser(un string) (User, error) {
 	row := db.QueryRow(q, un)
 
 	err := row.Scan(
-		&u.ID,
-		&u.UserName,
-		&u.SaltPass,
-		&u.Password,
-		&u.FirstName,
-		&u.LastName,
+		&u.ID, &u.UserName, &u.SaltPass, &u.Password, &u.FirstName, &u.LastName,
 	)
 	return u, err
 }
@@ -100,25 +82,14 @@ func AddUser(u User) error {
 
 	q := fmt.Sprintf(`
 		INSERT INTO users (
-			UserName,
-			SaltPass,
-			Password,
-			FirstName,
-			LastName
+			UserName, SaltPass, Password, FirstName, LastName
 		)
 		VALUES (
-			$1,
-			$2,
-			$3,
-			$4,
-			$5
+			$1, $2, $3, $4, $5
 		);
 	`)
 	_, err := db.Exec(
-		q,
-		u.UserName, u.SaltPass,
-		u.Password, u.FirstName,
-		u.LastName,
+		q, u.UserName, u.SaltPass, u.Password, u.FirstName, u.LastName,
 	)
 
 	return err
