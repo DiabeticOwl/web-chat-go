@@ -24,7 +24,7 @@ func main() {
 	// In deployment port 80 is recommended.
 	port := ":8080"
 	if !debug {
-		port = ":8080"
+		port = ":80"
 	}
 	err := http.ListenAndServe(port, nil)
 	if err != nil {
