@@ -1,34 +1,14 @@
 {{ define "chat" }}
-    <div class="card chat-app">
-        <div class="chat">
-            <div class="chat-header clearfix">
-                <div class="row">
-                    <div class="col-lg-6">
-                        <a href="javascript:void(0);" data-toggle="modal" data-target="#view_info">
-                            <img src="/assets/images/unk-prof.jpeg">
-                        </a>
-                        <div class="chat-about">
-                            <h6 class="m-b-0">Group Chat</h6>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="chat-history">
-                <ul class="m-b-0">
-                </ul>
-            </div>
-            <div class="chat-message clearfix">
-                <form method="GET" id="inputForm">
-                    <div class="input-group mb-0">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text" onclick="send()"><i class="fa fa-send"></i></span>
-                        </div>
-                        <input id="inputMessage" type="text" class="form-control" placeholder="Enter text here...">                                    
-                    </div>
-                </form>
-            </div>
+    <div>
+        <div id="chat-history">
         </div>
+        <br>
+        <form method="GET" id="inputForm">
+            <div class="input-group">
+                <input id="inputMessage" type="text" class="form-control" placeholder="Enter text here...">                                    
+            </div>
+        </form>
+        <br>
     </div>
-
     <script src="/assets/js/ws.js"></script>
 {{ end }}

@@ -6,7 +6,9 @@ import (
 	"bufio"
 	"database/sql"
 	"fmt"
+	"math/rand"
 	"net"
+	"strings"
 	"sync"
 	"time"
 	"web-chat-go/user"
@@ -131,7 +133,8 @@ func (h *Hub) handleTCPConnection(conn net.Conn, dbConn *sql.DB) {
 	fmt.Fprintf(conn, "Please identify yourself: ")
 	scanner := bufio.NewScanner(conn)
 	clientTCP := ClientTCP{
-		Conn: conn,
+		Conn:      conn,
+		UserColor: randomHexColor(),
 	}
 
 	scanner.Scan()
@@ -175,9 +178,10 @@ func (h *Hub) handleTCPConnection(conn net.Conn, dbConn *sql.DB) {
 	// it through the hub.
 	for scanner.Scan() {
 		message := ClientMessage{
-			Time:    time.Now().Format("2006-01-02 15:04:05"),
-			MsgBody: scanner.Bytes(),
-			User:    clientTCP.User,
+			Time:     time.Now().Format("2006-01-02 15:04:05"),
+			MsgBody:  scanner.Bytes(),
+			MsgColor: clientTCP.UserColor,
+			User:     clientTCP.User,
 		}
 
 		h.Broadcast <- message
@@ -209,4 +213,17 @@ func (h *Hub) RunTCPServer(address string, dbConn *sql.DB) {
 
 		go h.handleTCPConnection(conn, dbConn)
 	}
+}
+
+func randomHexColor() string {
+	digits := strings.Split("0 1 2 3 4 5 6 7 8 9 a b c d e f", " ")
+	hexCode := "#"
+
+	for len(hexCode) < 7 {
+		rInt := rand.Intn(len(digits))
+
+		hexCode += digits[rInt]
+	}
+
+	return hexCode
 }

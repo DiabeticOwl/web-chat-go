@@ -19,24 +19,27 @@ var upgrader = websocket.Upgrader{
 // A client is a registered user in the application's hub that
 // is able to send messages to others of its own type.
 type ClientWS struct {
-	User *user.User
-	Hub  *Hub
-	Conn *websocket.Conn
-	Send chan ClientMessage
+	User      *user.User
+	UserColor string
+	Hub       *Hub
+	Conn      *websocket.Conn
+	Send      chan ClientMessage
 }
 
 // ClientTCP type is a struct that will describe a TCP client.
 type ClientTCP struct {
-	User *user.User
-	Conn net.Conn
+	User      *user.User
+	UserColor string
+	Conn      net.Conn
 }
 
 // ClientMessage type is a struct that will describe a message to be
 // sent to the entire collection of Clients in the application's hub.
 type ClientMessage struct {
-	Time    string
-	MsgBody []byte
-	User    *user.User
+	Time     string
+	MsgBody  []byte
+	MsgColor string
+	User     *user.User
 }
 
 // readMessages defers the closure of the Client and enables an
@@ -68,9 +71,10 @@ func (c *ClientWS) readMessages() {
 		}
 
 		message := ClientMessage{
-			Time:    time.Now().Format("2006-01-02 15:04:05"),
-			MsgBody: msg,
-			User:    c.User,
+			Time:     time.Now().Format("2006-01-02 15:04:05"),
+			MsgBody:  msg,
+			MsgColor: c.UserColor,
+			User:     c.User,
 		}
 
 		c.Hub.Broadcast <- message
@@ -96,10 +100,15 @@ func (c *ClientWS) writeMessages() {
 				// return
 			}
 
-			// Formatting the message with the following pattern:
-			// Time of the message | Message's body.
-			msg := fmt.Sprintf("%s|%s", message.Time, message.MsgBody)
-			w.Write([]byte(msg))
+			msg := []byte(fmt.Sprintf(
+				"%s|%s %s > %s",
+				message.MsgColor,
+				message.Time,
+				message.User.UserName,
+				message.MsgBody,
+			))
+
+			w.Write(msg)
 
 			if err := w.Close(); err != nil {
 				panic(err)
@@ -124,6 +133,7 @@ func ServeClientWs(
 	}
 
 	client.Conn = conn
+	client.UserColor = randomHexColor()
 
 	client.Hub.RegisterWS <- client
 
