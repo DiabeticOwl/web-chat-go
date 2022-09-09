@@ -15,69 +15,81 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-type Client struct {
-	User *user.User
-	Hub  *Hub
-	Conn *websocket.Conn
-	Send chan []byte
+// Client type is a struct that will describe a websocket client.
+// A client is a registered user in the application's hub that
+// is able to send messages to others of its own type.
+type ClientWS struct {
+	User      *user.User
+	UserColor string
+	Hub       *Hub
+	Conn      *websocket.Conn
+	Send      chan ClientMessage
 }
 
+// ClientTCP type is a struct that will describe a TCP client.
 type ClientTCP struct {
-	User *user.User
-	Conn net.Conn
+	User      *user.User
+	UserColor string
+	Conn      net.Conn
 }
 
-// clientClose will unregister the given Client and close it's connection
-// to the web application.
-func (c *Client) clientClose() {
-	c.Hub.unregister <- c
-	c.Conn.Close()
+// ClientMessage type is a struct that will describe a message to be
+// sent to the entire collection of Clients in the application's hub.
+type ClientMessage struct {
+	Time     string
+	MsgBody  []byte
+	MsgColor string
+	User     *user.User
 }
 
 // readMessages defers the closure of the Client and enables an
 // implementation of a Reader logic that will read each message sent from the
 // web application through the WebSocket. The read message will be broadcasted
 // to the entire Hub's collection of clients.
-func (c *Client) readMessages() {
-	defer c.clientClose()
+func (c *ClientWS) readMessages() {
+	// Client's closure.
+	defer func() {
+		c.Hub.UnregisterWS <- c
+	}()
 
 	for {
 		// Read message from browser
 		_, msg, err := c.Conn.ReadMessage()
 		if err != nil {
+			// If err is not any of the following, panic.
 			if websocket.IsUnexpectedCloseError(
-				err, websocket.CloseGoingAway,
+				err,
+				websocket.CloseGoingAway,
 				websocket.CloseAbnormalClosure,
+				websocket.CloseNormalClosure,
 			) {
-				fmt.Println("The websocket closed unexpectedly.")
-				break
-			} else if websocket.IsCloseError(
-				err, websocket.CloseGoingAway,
-			) {
-				fmt.Printf("User %v has logged out.\n", c.User.UserName)
-				break
+				panic(err)
 			}
-			panic(err)
+
+			fmt.Printf("User %v has logged out.\n", c.User.UserName)
+			break
 		}
 
-		tNow := []byte(fmt.Sprint(time.Now().Format("2006-01-02 15:04:05"), "|"))
-		msg = append(tNow, msg...)
+		message := ClientMessage{
+			Time:     time.Now().Format("2006-01-02 15:04:05"),
+			MsgBody:  msg,
+			MsgColor: c.UserColor,
+			User:     c.User,
+		}
 
-		msg = append(msg, []byte(fmt.Sprintf("|%v", c.User.UserName))...)
-
-		c.Hub.Broadcast <- msg
+		c.Hub.Broadcast <- message
 	}
 }
 
 // writeMessages defers the closure of the Client's connection to the web
 // application and enables an implementation of a Writer logic that will
 // extract all messages that the "Send" channel in the Client instance has.
-func (c *Client) writeMessages() {
+func (c *ClientWS) writeMessages() {
 	defer c.Conn.Close()
 
 	for {
 		select {
-		case msg, ok := <-c.Send:
+		case message, ok := <-c.Send:
 			if !ok {
 				return
 			}
@@ -87,6 +99,14 @@ func (c *Client) writeMessages() {
 				panic(err)
 				// return
 			}
+
+			msg := []byte(fmt.Sprintf(
+				"%s|%s %s > %s",
+				message.MsgColor,
+				message.Time,
+				message.User.UserName,
+				message.MsgBody,
+			))
 
 			w.Write(msg)
 
@@ -103,7 +123,7 @@ func (c *Client) writeMessages() {
 // "writeMessages" and "readMessages" methods will be launched to different
 // goroutines.
 func ServeClientWs(
-	hub *Hub, client *Client,
+	hub *Hub, client *ClientWS,
 	w http.ResponseWriter, r *http.Request,
 ) {
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -113,8 +133,9 @@ func ServeClientWs(
 	}
 
 	client.Conn = conn
+	client.UserColor = randomHexColor()
 
-	client.Hub.register <- client
+	client.Hub.RegisterWS <- client
 
 	fmt.Printf("User %v has logged in.\n", client.User.UserName)
 

@@ -14,6 +14,12 @@ func setCookie(w http.ResponseWriter) *http.Cookie {
 		Value:    uuid.NewString(),
 		Path:     "/",
 		HttpOnly: true,
+		MaxAge:   int(time.Minute) * 2,
+		// For SameSite Cookie Warning.
+		// More info at:
+		// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite
+		// https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-cookie-same-site-00
+		SameSite: http.SameSiteLaxMode,
 	}
 
 	http.SetCookie(w, c)
@@ -32,7 +38,7 @@ func getUser(w http.ResponseWriter, r *http.Request) user.User {
 	}
 
 	if sess, ok := dbSessions[c.Value]; ok {
-		u, err = user.SearchUser(sess.un)
+		u, err = user.SearchUser(dbConn, sess.un)
 		if err != nil {
 			panic(err)
 		}
