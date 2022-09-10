@@ -1,5 +1,7 @@
 # Web Chat in Go
 
+![appPreview](https://i.imgur.com/xmZ17sy.gif)
+
 Web Chat in Go is a simple chat built with the [websocket protocol](https://datatracker.ietf.org/doc/html/rfc6455) on the back end and a [free bootstrap template](https://www.bootdey.com/snippets/view/chat-app) on the front end.
 
 The logic used is an implementation of the [websocket package](https://github.com/gorilla/websocket) in the Go programming language with the application of hubs and clients principles to connect the server with the user in the web page.
