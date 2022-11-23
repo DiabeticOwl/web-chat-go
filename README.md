@@ -11,15 +11,15 @@ in the Go programming language with the application of hubs and clients principl
 to connect the server with the user in the web page.
 
 User data is stored on a local [PostgreSQL](https://www.postgresql.org/) database
-and, alongside the entire app, will be served in the cloud in the future.
+and the entire app is ready to be hosted in the cloud.
 
 Web Chat in Go also enables another port (6893) in which users can connect with
 the command "telnet" and join the group chat by identifying themselves as an
-already logged in user or as a guest user.
+already registered user or as a guest user.
 
 ## Client
 
-The client logic consists consists on a struct that contains information of
+The client logic consists on a struct that contains information of
 the user connected to the application, the connection itself, the instance of
 the Hub it belongs and a channel that will be used to send the written message
 to the rest of clients in the program.
